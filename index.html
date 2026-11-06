@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Peyton's Points Board</title>
+<meta name="theme-color" content="#F4B731">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Points">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#EEF2F9; --surface:#FFFFFF; --sunk:#E3E9F4; --ink:#18213D; --muted:#56607F; --line:#D3DAE8;
+  --accent:#1C6FD8; --accent-ink:#FFFFFF; --ticket:#F4B731; --ticket-ink:#3A2600;
+  --good:#16895B; --good-soft:#D9F2E6; --warn:#C46A00; --warn-soft:#FCEBD3; --bad:#C23A3A;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0F1426; --surface:#18203B; --sunk:#121931; --ink:#ECF0FA; --muted:#A1AAC9; --line:#2B3558;
+  --accent:#5EA3FF; --accent-ink:#0A1530; --ticket:#F4B731; --ticket-ink:#2A1B00;
+  --good:#45C68E; --good-soft:#163A2D; --warn:#F0A13C; --warn-soft:#3A2A12; --bad:#FF7B7B; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(48px + env(safe-area-inset-bottom,0px))}
+[hidden]{display:none!important}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
+h2{font-size:1.35rem}
+.muted{color:var(--muted)} .small{font-size:.86rem} .num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top h1{font-size:1.6rem}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.9rem}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:12px;overflow-x:auto}
+.tabs a{flex:1;text-align:center;text-decoration:none;color:var(--muted);padding:9px 10px;border-radius:9px;font-weight:700;white-space:nowrap}
+.tabs a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.tabs .badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--warn);color:#fff;font-size:.75rem;line-height:20px}
+.hero{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .lbl{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.stat .val{font-family:var(--display);font-size:2.1rem;font-weight:800;line-height:1.05}
+.stat.big{background:var(--ticket);border-color:transparent;color:var(--ticket-ink)}
+.stat.big .lbl{color:var(--ticket-ink);opacity:.8}
+.stat.big .val{font-size:2.8rem}
+@media (max-width:560px){.hero{grid-template-columns:1fr 1fr}.stat.big{grid-column:1/-1}}
+.section{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .t{min-width:0}
+.row .t b{display:block;overflow-wrap:anywhere}
+.cat{font-size:.78rem;color:var(--muted)}
+.pts{font-family:var(--display);font-weight:800;font-size:1.1rem;color:var(--ticket-ink);background:var(--ticket);border-radius:8px;padding:2px 9px;white-space:nowrap}
+.box{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--sunk);display:grid;place-items:center;font-size:1.3rem;font-weight:800;padding:0}
+.box.done{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.box.ok{border-color:var(--good);background:var(--good);color:#fff}
+.status{font-size:.8rem;font-weight:700}
+.status.wait{color:var(--warn)} .status.ok{color:var(--good)}
+.row.ok .t b{text-decoration:line-through;text-decoration-color:var(--good);text-decoration-thickness:2px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.good{background:var(--good);color:#fff;border-color:transparent}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:.88rem}
+.btn:disabled{opacity:.5;cursor:default}
+.prizes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.stub{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px 14px 22px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.stub::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;border-left:2px dashed var(--line)}
+.stub .win{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--accent)}
+.stub h3{font-size:1.15rem;overflow-wrap:anywhere}
+.bar{height:12px;border-radius:999px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ticket);border-radius:999px;transition:width .4s}
+.stub.unlocked{border-color:var(--good);box-shadow:0 0 0 2px var(--good-soft)}
+.stub.unlocked .bar i{background:var(--good)}
+.stub .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{font-size:.8rem;font-weight:700;padding:3px 9px;border-radius:999px}
+.tag.go{background:var(--good);color:#fff} .tag.given{background:var(--sunk);color:var(--muted)}
+.weeknav{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;min-width:0}
+.day.today{border-color:var(--accent)}
+.day .dn{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase}
+.day .col{width:70%;height:90px;background:var(--sunk);border-radius:6px;display:flex;align-items:flex-end;overflow:hidden}
+.day .col i{display:block;width:100%;background:var(--ticket)}
+.day .dp{font-family:var(--display);font-weight:800}
+.day .dc{font-size:.72rem;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:700;color:var(--muted)}
+input[type=text],input[type=email],input[type=number],input[type=date],input[type=password],select{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:10px;width:100%;min-width:0;font-weight:400;color:var(--ink);font-size:16px}
+.dow{display:flex;gap:4px;flex-wrap:wrap}
+.dow label{display:inline-flex;align-items:center;gap:3px;font-size:.85rem;border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--ink)}
+.empty{padding:22px 16px;text-align:center;color:var(--muted)}
+.login{max-width:380px;margin:8vh auto 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:700;z-index:50;max-width:calc(100% - 32px)}
+.banner{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.pop{animation:pop .35s ease}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="login" class="card login" hidden>
+    <h1>Points Board</h1>
+    <p class="muted small" style="margin:0">Sign in with the email and password a parent set up for you.</p>
+    <form id="login-form" class="section">
+      <label class="f">Email<input id="l-email" type="email" autocomplete="username" required></label>
+      <label class="f">Password<input id="l-pass" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit">Sign in</button>
+      <span class="small" id="l-msg" style="color:var(--bad)"></span>
+    </form>
+  </section>
+
+  <div id="app" class="wrap" hidden>
+    <header class="top">
+      <div>
+        <h1 id="title">Points Board</h1>
+        <div class="muted small" id="today-label"></div>
+      </div>
+      <button class="chip" id="signout" type="button">Sign out</button>
+    </header>
+    <nav class="tabs" id="tabs"></nav>
+    <div id="banner" class="banner small muted" hidden></div>
+    <main id="view"></main>
+  </div>
+
+  <div id="boot" class="banner small muted">Loading…</div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const CATS = ["Homework","Chores","Reading","Behavior","Other"];
+
+/* ---------- dates (local time) ---------- */
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return ymd(d); };
+const todayStr = () => ymd(new Date());
+const weekStart = s => { const d = parse(s); d.setDate(d.getDate() - (d.getDay()+6)%7); return ymd(d); };
+const monthStart = s => s.slice(0,7) + "-01";
+const monthEnd = s => { const d = parse(monthStart(s)); d.setMonth(d.getMonth()+1); d.setDate(0); return ymd(d); };
+const nice = s => parse(s).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+const short = s => parse(s).toLocaleDateString(undefined,{month:"short",day:"numeric"});
+
+/* ---------- config ---------- */
+const CFG = window.POINTS_CONFIG || {};
+if (!CFG.supabaseUrl || /YOUR-PROJECT/.test(CFG.supabaseUrl) || !window.supabase) {
+  $("#boot").textContent = !window.supabase
+    ? "Couldn't load the app. Check your internet connection and reload."
+    : "Almost there: add your Supabase URL and key to config.js (see README).";
+  return;
+}
+const sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } });
+
+/* ---------- state ---------- */
+const S = { me:null, role:null, settings:{kid_name:"Peyton"}, tasks:[], rewards:[], comp:{}, bonus:[], claims:{}, weekOf:null, ready:false, channel:null };
+const isParent = () => S.role === "parent";
+const kid = () => S.settings.kid_name || "Peyton";
+const ck = (day, id) => day + "|" + id;
+
+async function fetchAll(table, order){
+  const out = []; const step = 1000;
+  for (let from = 0; ; from += step) {
+    let q = sb.from(table).select("*").range(from, from + step - 1);
+    if (order) q = q.order(order[0], {ascending: order[1] !== false});
+    const { data, error } = await q;
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < step) break;
+  }
+  return out;
+}
+async function loadAll(){
+  const [st, t, r, c, b, cl] = await Promise.all([
+    sb.from("settings").select("*").eq("id",1).maybeSingle(),
+    fetchAll("tasks", ["sort"]), fetchAll("rewards", ["created_at"]),
+    fetchAll("completions", ["day"]), fetchAll("bonus", ["day"]), fetchAll("claims"),
+  ]);
+  if (st.error) throw st.error;
+  S.settings = st.data || S.settings;
+  S.tasks = t; S.rewards = r; S.bonus = b;
+  S.comp = {}; c.forEach(x => S.comp[ck(x.day, x.task_id)] = x);
+  S.claims = {}; cl.forEach(x => S.claims[x.reward_id + "|" + x.period] = x);
+}
+function applyChange(table, type, row){
+  const del = type === "DELETE";
+  if (table === "settings") { if (!del) S.settings = row; return; }
+  if (table === "completions") { const k = ck(row.day, row.task_id); del ? delete S.comp[k] : S.comp[k] = row; return; }
+  if (table === "claims") { const k = row.reward_id + "|" + row.period; del ? delete S.claims[k] : S.claims[k] = row; return; }
+  const arr = S[table]; if (!arr) return;
+  const i = arr.findIndex(x => x.id === row.id);
+  if (del) { if (i >= 0) arr.splice(i,1); }
+  else if (i >= 0) arr[i] = row; else arr.push(row);
+}
+function subscribe(){
+  if (S.channel) sb.removeChannel(S.channel);
+  S.channel = sb.channel("board");
+  for (const t of ["settings","tasks","rewards","completions","bonus","claims"]) {
+    S.channel.on("postgres_changes", {event:"*", schema:"public", table:t}, p => {
+      applyChange(t, p.eventType, p.eventType === "DELETE" ? p.old : p.new); render();
+    });
+  }
+  S.channel.subscribe();
+}
+// catch up whenever the app comes back to the screen
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && S.ready) { try { await loadAll(); render(); } catch(e) {} }
+});
+
+/* ---------- derived ---------- */
+const liveTasks = () => S.tasks.filter(t => t.active && !t.archived);
+function tasksFor(date){
+  const dow = parse(date).getDay();
+  return liveTasks().filter(t => {
+    if (t.start_date && date < t.start_date) return false;
+    if (t.once) return t.once === date;
+    return (t.days || []).includes(dow);
+  }).sort((a,b) => a.sort - b.sort || a.title.localeCompare(b.title));
+}
+const comp = (d,id) => S.comp[ck(d,id)];
+const isDone = (d,id) => !!(comp(d,id) || {}).done;
+const approved = (d,id) => { const c = comp(d,id); return c && c.approved_points != null ? c.approved_points : null; };
+function rangePoints(a, b){
+  let p = 0;
+  for (const k in S.comp) { const c = S.comp[k]; if (c.approved_points != null && c.day >= a && c.day <= b) p += c.approved_points; }
+  for (const x of S.bonus) if (x.day >= a && x.day <= b) p += x.points;
+  return p;
+}
+const dayPoints = d => rangePoints(d, d);
+function streak(){
+  let d = todayStr(), n = 0;
+  if (dayPoints(d) <= 0) d = addDays(d,-1);
+  while (dayPoints(d) > 0 && n < 2000) { n++; d = addDays(d,-1); }
+  return n;
+}
+function pending(){
+  const since = addDays(todayStr(), -14), out = [];
+  for (const k in S.comp) {
+    const c = S.comp[k];
+    if (c.done && c.approved_points == null && c.day >= since) {
+      const task = S.tasks.find(t => t.id === c.task_id);
+      if (task) out.push({date:c.day, task});
+    }
+  }
+  return out.sort((a,b) => b.date.localeCompare(a.date));
+}
+function rewardWindow(r){
+  const t = todayStr();
+  if (r.period_type === "week")  { const a = weekStart(t); return {a, b:addDays(a,6), period:"w"+a, label:"This week", ends:"Resets Monday"}; }
+  if (r.period_type === "month") return {a:monthStart(t), b:monthEnd(t), period:"m"+t.slice(0,7), label:"This month", ends:"Ends " + short(monthEnd(t))};
+  const a = r.start_date || t;
+  return {a, b:r.end_date || "9999-12-31", period:"g"+a, label:"Big goal", ends: r.end_date ? "By " + short(r.end_date) : "Since " + short(a)};
+}
+
+/* ---------- writes ---------- */
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2600); }
+async function run(p, ok){
+  const { data, error } = await p;
+  if (error) { console.error(error); toast(/row-level|permission/i.test(error.message) ? "Only a parent can change that." : "Couldn't save. Check your connection and try again."); return null; }
+  if (ok) toast(ok);
+  return data;
+}
+async function saveComp(day, task_id, patch){
+  const row = await run(sb.from("completions").upsert({day, task_id, ...patch}, {onConflict:"day,task_id"}).select().single());
+  if (row) { applyChange("completions", "UPSERT", row); render(); }
+  return row;
+}
+async function saveRow(table, row, ok){
+  const r = await run(sb.from(table).upsert(row).select().single(), ok);
+  if (r) { applyChange(table, "UPSERT", r); render(); }
+  return r;
+}
+async function delRow(table, match, ok){
+  const { error } = await sb.from(table).delete().match(match);
+  if (error) { console.error(error); toast("Couldn't remove that. Check your connection and try again."); return; }
+  if (ok) toast(ok);
+  applyChange(table, "DELETE", match); render();
+}
+
+/* ---------- views ---------- */
+const VIEWS = () => isParent() ? ["today","approve","week","setup"] : ["today","week"];
+const view = () => { const h = (location.hash || "#today").slice(1); return VIEWS().includes(h) ? h : "today"; };
+const LABEL = {today:"Today", approve:"Approve", week:"Week", setup:"Setup"};
+
+function render(){
+  if (!S.ready) return;
+  const v = view(), pc = pending().length;
+  $("#tabs").innerHTML = VIEWS().map(x => `<a href="#${x}" aria-current="${x===v?"page":"false"}">${LABEL[x]}${x==="approve"&&pc?` <span class="badge">${pc}</span>`:""}</a>`).join("");
+  $("#title").textContent = kid() + "'s Points Board";
+  document.title = kid() + "'s Points Board";
+  $("#today-label").textContent = nice(todayStr());
+  const el = $("#view");
+  el.innerHTML = v === "today" ? vToday() : v === "week" ? vWeek() : v === "approve" ? vApprove() : vSetup();
+  if (v === "setup") wireSetup();
+}
+
+function taskRow(date, t, parentCtl){
+  const ap = approved(date, t.id), done = isDone(date, t.id);
+  const st = ap !== null ? "ok" : done ? "done" : "";
+  const status = ap !== null ? `<span class="status ok">Approved · +${ap}</span>` : done ? `<span class="status wait">Waiting for a parent</span>` : "";
+  let acts;
+  if (parentCtl) {
+    acts = ap !== null
+      ? `<button class="btn sm ghost" data-act="undo" data-d="${date}" data-id="${t.id}">Undo</button>`
+      : `<button class="btn sm good" data-act="approve" data-d="${date}" data-id="${t.id}">Approve</button>` +
+        (done ? `<button class="btn sm ghost" data-act="reject" data-d="${date}" data-id="${t.id}">Not yet</button>` : "");
+  } else acts = `<span class="pts num">+${t.points}</span>`;
+  const label = ap !== null ? "Approved" : done ? "Marked done, tap to undo" : "Mark as done";
+  return `<div class="row ${ap!==null?"ok":""}">
+    <button class="box ${st}" aria-label="${esc(t.title)}: ${label}" data-act="${ap!==null?"noop":"toggle"}" data-d="${date}" data-id="${t.id}">${ap!==null||done?"✓":""}</button>
+    <div class="t"><b>${esc(t.title)}</b><span class="cat">${esc(t.category)} · ${t.points} pts</span> ${status}</div>
+    <div class="acts">${acts}</div></div>`;
+}
+
+function prizeCards(){
+  const order = {week:0, month:1, goal:2};
+  const rs = S.rewards.filter(r => r.active && !r.archived).sort((a,b) => order[a.period_type]-order[b.period_type] || a.target-b.target);
+  if (!rs.length) return `<div class="list"><div class="empty">No prizes set yet.${isParent()?" Add some in Setup.":""}</div></div>`;
+  return `<div class="prizes">` + rs.map(r => {
+    const w = rewardWindow(r), got = rangePoints(w.a, w.b), tgt = r.target;
+    const pct = Math.max(0, Math.min(100, Math.round(got/tgt*100))), unlocked = got >= tgt;
+    const claim = S.claims[r.id + "|" + w.period];
+    let foot = claim ? `<span class="tag given">Given ${short(claim.given_on)}</span>`
+      : unlocked ? `<span class="tag go">Unlocked!</span>` : `<span class="small muted num">${tgt-got} to go</span>`;
+    if (isParent() && unlocked && !claim) foot += `<button class="btn sm" data-act="claim" data-rid="${r.id}" data-period="${w.period}">Mark as given</button>`;
+    if (isParent() && claim) foot += `<button class="btn sm ghost" data-act="unclaim" data-rid="${r.id}" data-period="${w.period}">Undo</button>`;
+    return `<div class="stub ${unlocked?"unlocked":""}">
+      <span class="win">${w.label}</span><h3>${esc(r.title)}</h3>
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tgt}" aria-valuenow="${Math.min(got,tgt)}"><i style="width:${pct}%"></i></div>
+      <div class="foot"><span class="num"><b>${got}</b> / ${tgt} pts</span>${foot}</div>
+      <span class="small muted">${w.ends}</span></div>`;
+  }).join("") + `</div>`;
+}
+
+function vToday(){
+  const t = todayStr(), list = tasksFor(t), ws = weekStart(t);
+  const wk = rangePoints(ws, addDays(ws,6)), mo = rangePoints(monthStart(t), monthEnd(t));
+  const left = list.filter(x => approved(t,x.id) === null && !isDone(t,x.id)).length;
+  const possible = list.reduce((s,x) => s + x.points, 0), st = streak();
+  const rows = list.length ? list.map(x => taskRow(t, x, isParent())).join("")
+    : `<div class="empty">Nothing assigned for today. ${isParent() ? "Add tasks in Setup." : "Enjoy the break!"}</div>`;
+  return `<div class="wrap">
+    <div class="hero">
+      <div class="stat big"><span class="lbl">Points today</span><span class="val num" id="today-pts">${dayPoints(t)}</span><span class="small">of ${possible} possible</span></div>
+      <div class="stat"><span class="lbl">This week</span><span class="val num">${wk}</span><span class="small muted">This month: ${mo}</span></div>
+      <div class="stat"><span class="lbl">Streak</span><span class="val num">${st}</span><span class="small muted">${st===1?"day":"days"} in a row</span></div>
+    </div>
+    <section class="section">
+      <div class="sec-head"><h2>Today's tasks</h2><span class="muted small">${left ? left + " left to do" : list.length ? "All checked off" : ""}</span></div>
+      <div class="list">${rows}</div>
+      ${isParent() ? "" : `<span class="small muted">Tap the box when it's done. A parent approves it to add the points.</span>`}
+    </section>
+    <section class="section"><h2>Prizes</h2>${prizeCards()}</section>
+  </div>`;
+}
+
+function vApprove(){
+  const p = pending(), t = todayStr(), list = tasksFor(t);
+  const pend = p.length ? p.map(x => `<div style="padding:10px 14px 0" class="small muted">${x.date===t?"Today":nice(x.date)}</div>` + taskRow(x.date, x.task, true)).join("")
+    : `<div class="empty">Nothing waiting. When ${esc(kid())} checks something off, it shows up here.</div>`;
+  const recent = [...S.bonus].sort((a,b) => b.day.localeCompare(a.day) || b.created_at.localeCompare(a.created_at)).slice(0,8);
+  return `<div class="wrap">
+    <section class="section"><div class="sec-head"><h2>Waiting for approval</h2><span class="muted small">${p.length} item${p.length===1?"":"s"}</span></div><div class="list">${pend}</div></section>
+    <section class="section"><div class="sec-head"><h2>Today, all tasks</h2><span class="muted small">Approve directly, even if it wasn't checked off</span></div>
+      <div class="list">${list.length ? list.map(x => taskRow(t,x,true)).join("") : `<div class="empty">No tasks today.</div>`}</div></section>
+    <section class="card">
+      <h2>Bonus or deduction</h2>
+      <p class="small muted" style="margin:0">For a great effort that wasn't on the list, or to take points back. Use a minus sign to deduct.</p>
+      <form id="bonus-form" class="fgrid">
+        <label class="f">Points<input id="b-pts" type="number" step="1" value="5" required></label>
+        <label class="f">Reason<input id="b-note" type="text" placeholder="Helped carry groceries" required></label>
+        <label class="f">Date<input id="b-date" type="date" value="${t}" required></label>
+        <label class="f">&nbsp;<button class="btn primary" type="submit">Add</button></label>
+      </form>
+      ${recent.length ? `<div class="list">` + recent.map(x => `<div class="row" style="grid-template-columns:1fr auto auto">
+        <div class="t"><b>${esc(x.note||"Bonus")}</b><span class="cat">${short(x.day)}</span></div>
+        <span class="pts num">${x.points>0?"+":""}${x.points}</span>
+        <button class="btn sm ghost danger" data-act="del-bonus" data-id="${x.id}">Remove</button></div>`).join("") + `</div>` : ""}
+    </section>
+  </div>`;
+}
+
+function vWeek(){
+  const t = todayStr(); if (!S.weekOf) S.weekOf = weekStart(t);
+  const a = S.weekOf, days = [...Array(7)].map((_,i) => addDays(a,i));
+  const pts = days.map(dayPoints), max = Math.max(10, ...pts), total = pts.reduce((s,x) => s+x, 0);
+  const cols = days.map((d,i) => {
+    const list = tasksFor(d), ok = list.filter(x => approved(d,x.id) !== null).length;
+    return `<div class="day ${d===t?"today":""}"><span class="dn">${DOW[parse(d).getDay()]}</span>
+      <div class="col" aria-hidden="true"><i style="height:${Math.max(0,Math.round(pts[i]/max*100))}%"></i></div>
+      <span class="dp num">${pts[i]}</span><span class="dc num">${d>t?"–":ok+"/"+list.length}</span></div>`;
+  }).join("");
+  const log = days.slice().reverse().filter(d => d <= t).map(d => {
+    const items = [];
+    for (const k in S.comp) { const c = S.comp[k]; if (c.day === d && c.approved_points != null) { const tk = S.tasks.find(x => x.id === c.task_id); items.push(`${esc(tk ? tk.title : "Task")} (+${c.approved_points})`); } }
+    for (const b of S.bonus) if (b.day === d) items.push(`${esc(b.note || "Bonus")} (${b.points>0?"+":""}${b.points})`);
+    return `<div class="row" style="grid-template-columns:90px 1fr"><b class="small">${short(d)}</b><span class="small ${items.length?"":"muted"}">${items.join(" · ") || "No points"}</span></div>`;
+  }).join("");
+  return `<div class="wrap" style="gap:16px">
+    <div class="weeknav"><button class="btn sm" data-act="wk" data-n="-7">← Prev</button>
+      <h2 class="num" style="font-size:1.1rem;text-align:center">${short(a)} – ${short(addDays(a,6))} · ${total} pts</h2>
+      <button class="btn sm" data-act="wk" data-n="7" ${a >= weekStart(t) ? "disabled" : ""}>Next →</button></div>
+    <div class="days">${cols}</div>
+    <span class="small muted">Bars show points earned each day. The fraction is tasks approved out of tasks assigned.</span>
+    <section class="section"><h2>What earned points</h2><div class="list">${log || `<div class="empty">This week hasn't started yet.</div>`}</div></section>
+  </div>`;
+}
+
+function schedLabel(t){
+  if (t.once) return "One time · " + short(t.once);
+  const k = (t.days || []).slice().sort().join(",");
+  if (k === "0,1,2,3,4,5,6") return "Every day";
+  if (k === "1,2,3,4,5") return "School days";
+  if (k === "0,6") return "Weekends";
+  return (t.days || []).slice().sort().map(x => DOW[x]).join(", ") || "No days set";
+}
+
+function vSetup(){
+  const ts = S.tasks.filter(x => !x.archived).sort((a,b) => (b.active - a.active) || a.title.localeCompare(b.title));
+  const rs = S.rewards.filter(x => !x.archived).sort((a,b) => (b.active - a.active));
+  const t = todayStr();
+  return `<div class="wrap">
+    <section class="card"><h2>Add a task</h2>
+      <form id="task-form" class="section">
+        <div class="fgrid">
+          <label class="f">Task<input id="t-title" type="text" placeholder="30 minutes of homework" required></label>
+          <label class="f">Points<input id="t-pts" type="number" min="1" step="1" value="5" required></label>
+          <label class="f">Type<select id="t-cat">${CATS.map(c => `<option>${c}</option>`).join("")}</select></label>
+          <label class="f">When<select id="t-sched"><option value="every">Every day</option><option value="school">School days (Mon–Fri)</option>
+            <option value="weekend">Weekends</option><option value="custom">Pick days</option><option value="once">One time</option></select></label>
+        </div>
+        <div class="dow" id="t-days" hidden>${DOW.map((d,i) => `<label><input type="checkbox" value="${i}">${d}</label>`).join("")}</div>
+        <label class="f" id="t-once-wrap" hidden>Date<input id="t-once" type="date" value="${t}"></label>
+        <div><button class="btn primary" type="submit">Add task</button></div>
+      </form></section>
+
+    <section class="section"><div class="sec-head"><h2>Tasks</h2><span class="small muted">${liveTasks().length} active</span></div>
+      <div class="list">${ts.length ? ts.map(x => `<div class="row" style="grid-template-columns:1fr auto">
+        <div class="t"><b class="${x.active?"":"muted"}">${esc(x.title)}</b><span class="cat">${esc(x.category)} · ${x.points} pts · ${schedLabel(x)}${x.active?"":" · Paused"}</span></div>
+        <div class="acts"><button class="btn sm" data-act="pause" data-id="${x.id}">${x.active?"Pause":"Resume"}</button>
+        <button class="btn sm ghost danger" data-act="del-task" data-id="${x.id}">Remove</button></div></div>`).join("") : `<div class="empty">No tasks yet.</div>`}</div>
+      <span class="small muted">Removing a task takes it off the list. Points already approved for it stay.</span></section>
+
+    <section class="card"><h2>Add a prize</h2>
+      <form id="reward-form" class="section">
+        <div class="fgrid">
+          <label class="f">Prize<input id="r-title" type="text" placeholder="Pick Friday's movie" required></label>
+          <label class="f">Points needed<input id="r-target" type="number" min="1" step="1" value="100" required></label>
+          <label class="f">Counts points from<select id="r-window"><option value="week">This week (resets Monday)</option><option value="month">This month</option><option value="goal">A start date (big goal)</option></select></label>
+        </div>
+        <div class="fgrid" id="r-goal" hidden>
+          <label class="f">Start counting on<input id="r-start" type="date" value="${t}"></label>
+          <label class="f">Deadline (optional)<input id="r-end" type="date"></label>
+        </div>
+        <div><button class="btn primary" type="submit">Add prize</button></div>
+      </form></section>
+
+    <section class="section"><h2>Prizes</h2>
+      <div class="list">${rs.length ? rs.map(r => { const w = rewardWindow(r); return `<div class="row" style="grid-template-columns:1fr auto">
+        <div class="t"><b class="${r.active?"":"muted"}">${esc(r.title)}</b><span class="cat num">${r.target} pts · ${w.label} · ${w.ends}${r.active?"":" · Hidden"}</span></div>
+        <div class="acts"><button class="btn sm" data-act="hide-reward" data-id="${r.id}">${r.active?"Hide":"Show"}</button>
+        <button class="btn sm ghost danger" data-act="del-reward" data-id="${r.id}">Remove</button></div></div>`; }).join("") : `<div class="empty">No prizes yet.</div>`}</div>
+      <span class="small muted">Points count toward every prize at once. Earning the weekend prize never takes away from the month-end one.</span></section>
+
+    <section class="card"><h2>Board settings</h2>
+      <form id="settings-form" class="fgrid">
+        <label class="f">Child's name<input id="s-name" type="text" value="${esc(kid())}" required></label>
+        <label class="f">&nbsp;<button class="btn primary" type="submit">Save</button></label>
+      </form>
+      <p class="small muted" style="margin:0">To add or remove family logins, follow "Add a family member" in the README.</p>
+    </section>
+  </div>`;
+}
+function wireSetup(){
+  const s = $("#t-sched"), sync = () => { $("#t-days").hidden = s.value !== "custom"; $("#t-once-wrap").hidden = s.value !== "once"; };
+  s.addEventListener("change", sync); sync();
+  const w = $("#r-window"), sync2 = () => $("#r-goal").hidden = w.value !== "goal";
+  w.addEventListener("change", sync2); sync2();
+}
+
+/* ---------- events ---------- */
+const ptsOf = id => (S.tasks.find(x => x.id === id) || {}).points || 0;
+function bump(){ requestAnimationFrame(() => { const el = $("#today-pts"); if (el) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); } }); }
+function confirmBtn(b, fn){
+  if (b.dataset.armed) return fn();
+  b.dataset.armed = "1"; const old = b.textContent; b.textContent = "Tap again to remove";
+  setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = old; } }, 3000);
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, d = b.dataset.d, id = b.dataset.id;
+  if (act === "toggle") {
+    if (isParent()) { await saveComp(d, id, {done:true, approved_points:ptsOf(id)}); bump(); return; }
+    const now = isDone(d,id);
+    const r = await saveComp(d, id, {done:!now});
+    if (r && !now) toast("Nice! Waiting for a parent to approve.");
+  }
+  else if (act === "approve") { await saveComp(d, id, {done:true, approved_points:ptsOf(id)}); bump(); }
+  else if (act === "reject") saveComp(d, id, {done:false, approved_points:null});
+  else if (act === "undo") saveComp(d, id, {approved_points:null});
+  else if (act === "claim") saveRow("claims", {reward_id:b.dataset.rid, period:b.dataset.period, given_on:todayStr()}, "Marked as given.");
+  else if (act === "unclaim") delRow("claims", {reward_id:b.dataset.rid, period:b.dataset.period});
+  else if (act === "del-bonus") delRow("bonus", {id});
+  else if (act === "pause") { const t = S.tasks.find(x => x.id === id); saveRow("tasks", {...t, active:!t.active}); }
+  else if (act === "del-task") confirmBtn(b, () => { const t = S.tasks.find(x => x.id === id); saveRow("tasks", {...t, archived:true}, "Task removed."); });
+  else if (act === "hide-reward") { const r = S.rewards.find(x => x.id === id); saveRow("rewards", {...r, active:!r.active}); }
+  else if (act === "del-reward") confirmBtn(b, () => { const r = S.rewards.find(x => x.id === id); saveRow("rewards", {...r, archived:true}, "Prize removed."); });
+  else if (act === "wk") { S.weekOf = addDays(S.weekOf, Number(b.dataset.n)); render(); }
+});
+
+document.addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.id === "login-form") {
+    $("#l-msg").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email:$("#l-email").value.trim(), password:$("#l-pass").value });
+    if (error) $("#l-msg").textContent = "That email and password didn't match. Check them and try again.";
+  }
+  else if (f.id === "task-form") {
+    const s = $("#t-sched").value;
+    let days = [0,1,2,3,4,5,6], once = null;
+    if (s === "school") days = [1,2,3,4,5];
+    if (s === "weekend") days = [0,6];
+    if (s === "custom") days = [...document.querySelectorAll("#t-days input:checked")].map(x => Number(x.value));
+    if (s === "once") { days = []; once = $("#t-once").value || todayStr(); }
+    if (s === "custom" && !days.length) return toast("Pick at least one day.");
+    const r = await saveRow("tasks", {title:$("#t-title").value.trim(), points:Math.max(1, parseInt($("#t-pts").value,10) || 1),
+      category:$("#t-cat").value, days, once, start_date: once || todayStr(), sort:99}, "Task added.");
+    if (r) f.reset();
+  }
+  else if (f.id === "reward-form") {
+    const w = $("#r-window").value;
+    const row = {title:$("#r-title").value.trim(), target:Math.max(1, parseInt($("#r-target").value,10) || 1), period_type:w};
+    if (w === "goal") { row.start_date = $("#r-start").value || todayStr(); row.end_date = $("#r-end").value || null; }
+    const r = await saveRow("rewards", row, "Prize added.");
+    if (r) f.reset();
+  }
+  else if (f.id === "bonus-form") {
+    const pts = parseInt($("#b-pts").value,10);
+    if (!pts) return toast("Enter a number of points.");
+    const r = await saveRow("bonus", {points:pts, note:$("#b-note").value.trim(), day:$("#b-date").value || todayStr()}, pts > 0 ? "Bonus added." : "Points deducted.");
+    if (r) $("#b-note").value = "";
+  }
+  else if (f.id === "settings-form") {
+    saveRow("settings", {id:1, kid_name:$("#s-name").value.trim() || "Peyton"}, "Saved.");
+  }
+});
+$("#signout").addEventListener("click", () => sb.auth.signOut());
+window.addEventListener("hashchange", render);
+
+/* ---------- session ---------- */
+async function start(session){
+  $("#boot").hidden = true;
+  if (!session) { S.ready = false; $("#app").hidden = true; $("#login").hidden = false; return; }
+  $("#login").hidden = true;
+  if (S.me === session.user.id && S.ready) return;
+  S.me = session.user.id;
+  $("#boot").hidden = false; $("#boot").textContent = "Loading the board…";
+  const { data:m, error } = await sb.from("members").select("role,name").eq("user_id", S.me).maybeSingle();
+  if (error || !m) {
+    $("#boot").innerHTML = `This login isn't on the family list yet. A parent can add it by following "Add a family member" in the README. <button class="btn sm" id="so2">Sign out</button>`;
+    $("#so2").onclick = () => sb.auth.signOut();
+    return;
+  }
+  S.role = m.role;
+  try { await loadAll(); }
+  catch(err) { console.error(err); $("#boot").textContent = "Couldn't load the board. Check your connection and reload."; return; }
+  S.ready = true; $("#boot").hidden = true; $("#app").hidden = false;
+  subscribe(); render();
+}
+sb.auth.onAuthStateChange((evt, session) => {
+  if (evt === "SIGNED_OUT") { S.me = null; S.ready = false; if (S.channel) sb.removeChannel(S.channel); }
+  if (evt === "TOKEN_REFRESHED") return;
+  setTimeout(() => start(session), 0);
+});
+
+let last = todayStr();
+setInterval(() => { if (todayStr() !== last) { last = todayStr(); render(); } }, 60000);
+})();
+</script>
+</body>
+</html>
